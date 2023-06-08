@@ -1,0 +1,448 @@
+<style>
+    html, body, #map, #map2, #map3{
+        height: 100%;
+        padding: 0;
+        margin: 0;
+}
+</style>
+<style>
+    .info {
+    padding: 6px 8px;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: white;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+}
+.info h4 {
+    margin: 0 0 5px;
+    color: #777;
+}
+</style>
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+
+<!--we need the topojson library as well-->
+<script src="https://unpkg.com/topojson@3.0.2/dist/topojson.min.js"></script>
+
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="ue.js"></script>
+<script src="colombia_json.js"></script>
+
+
+<div id="map"></div>
+<div id="map2"></div>
+<div id="map3"></div>
+
+
+
+
+
+<script>
+//VARIABLE DEFINIDA PARA EL MAPA DE USA
+var geojson;
+// ... our listeners
+geojson = L.geoJson(statesData);
+
+//MAPA EJEMPLO
+let map = L.map("map", {
+  center: [40, 30],
+  zoom: 4
+});
+
+L.tileLayer(
+  "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
+  {attribution:'CARTO'}
+).addTo(map);
+
+axios.request({
+    method: "get",
+    url: `https://jsanz.carto.com/api/v1/sql?`,
+    params: {
+      api_key: "",
+      q: `select cartodb_id, 
+               the_geom, 
+               name 
+          from populated_places
+        order by pop_max
+        limit 100`,
+      format: "geojson"
+    }
+  })
+  .then(function(response) {
+    var geojson = L.geoJson(response.data, {
+      // Pop Up
+      onEachFeature: function(feature, layer) {
+        layer.bindPopup(`<p>${feature.properties.name}</p>`);
+      },
+      // Style
+      pointToLayer: function(feature, latlng) {
+        return L.circleMarker(latlng, {
+          radius: 8,
+          fillColor: "#fabada",
+          color: "#000",
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 0.8
+        });
+      }
+    }).addTo(map);
+  });
+
+
+
+
+//MAPA EU
+var map2 = L.map('map2').setView([37.8, -96], 4);
+
+var tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map2);
+
+function getColor(d) {
+    return d > 1000 ? '#800026' :
+           d > 500  ? '#BD0026' :
+           d > 200  ? '#E31A1C' :
+           d > 100  ? '#FC4E2A' :
+           d > 50   ? '#FD8D3C' :
+           d > 20   ? '#FEB24C' :
+           d > 10   ? '#FED976' :
+                      '#FFEDA0';
+}
+
+function style(feature) {
+    return {
+        fillColor: getColor(feature.properties.density),
+        weight: 2,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.7
+    };
+}
+
+L.geoJson(statesData, {style: style}).addTo(map2);
+
+// L.geoJson(statesData).addTo(map2);
+
+function highlightFeature(e) {
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 5,
+        color: '#666',
+        dashArray: '',
+        fillOpacity: 0.7
+    });
+    
+    layer.bringToFront();
+    info.update(layer.feature.properties);
+}
+
+function resetHighlight(e) {
+    geojson.resetStyle(e.target);
+    info.update();
+}
+
+
+function zoomToFeature(e) {
+    map2.fitBounds(e.target.getBounds());
+}
+
+function onEachFeature(feature, layer) {
+    layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight,
+        click: zoomToFeature
+    });
+}
+
+geojson = L.geoJson(statesData, {
+    style: style,
+    onEachFeature: onEachFeature
+}).addTo(map2);
+
+
+
+var info = L.control();
+
+info.onAdd = function (map2) {
+    this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+    this.update();
+    return this._div;
+};
+
+// method that we will use to update the control based on feature properties passed
+info.update = function (props) {
+    this._div.innerHTML = '<h4>US Population Density</h4>' +  (props ?
+        '<b>' + props.name + '</b><br />' + props.density + ' people / mi<sup>2</sup>'
+        : 'Hover over a state');
+};
+
+info.addTo(map2);
+
+var legend = L.control({position: 'bottomright'});
+
+legend.onAdd = function (map2) {
+
+    var div = L.DomUtil.create('div', 'info legend'),
+        grades = [0, 10, 20, 50, 100, 200, 500, 1000],
+        labels = [];
+
+    // loop through our density intervals and generate a label with a colored square for each interval
+    for (var i = 0; i < grades.length; i++) {
+        div.innerHTML +=
+            '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+            grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+    }
+
+    return div;
+};
+
+legend.addTo(map2);
+
+
+
+
+
+
+
+//MAPA COLOMBIA UN SIN EFECTOS
+var map3 = L.map('map3').setView([37.8, -96], 4);
+
+var tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map3);
+
+
+function getColor2(e) {
+    return e > 1000 ? '#f7fcf5' :
+           e > 500  ? '#e5f5e0' :
+           e > 200  ? '#c7e9c0' :
+           e > 100  ? '#a1d99b' :
+           e > 50   ? '#41ab5d' :
+           e > 20   ? '#238b45' :
+           e > 10   ? '#FED976' :
+                      '#005a32';
+
+}
+
+function style2(feature) {
+    return {
+        fillColor: getColor2(feature.properties.STP9_2_1_M),
+        weight: 2,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.7
+    };
+}
+
+/*L.geoJson(colombia).addTo(map3);*/
+L.geoJson(colombia, {style: style2}).addTo(map3);
+// L.geoJSON(JSON.parse(colombia)).addTo(this.map3);
+var marker = L.marker([2.958242, -75.297896]).addTo(map3);
+var circle = L.circle([51.508, -0.11], {
+    color: 'red',
+    fillColor: '#f03',
+    fillOpacity: 0.5,
+    radius: 500
+}).addTo(map);
+var polygon = L.polygon([
+    [51.509, -0.08],
+    [51.503, -0.06],
+    [51.51, -0.047]
+]).addTo(map);
+
+
+marker.bindPopup("<b>Hello world!</b><br>I am a popup.").openPopup();
+circle.bindPopup("I am a circle.");
+polygon.bindPopup("I am a polygon.");
+</script>
+
+
+
+
+<script>
+
+
+    getCSVFByDocId('1gdKlT6iI-QUCxX5seqmtHjwlSoMo2dGKQQKU7dTofkk', 'A:Z', 'AIzaSyBnk4I7IbLq1GV4wVuIypF6lAXijdVknSw').then(procesaDatosAJSON);
+    async function getCSVFByDocId(id, rango, key) {
+      let url = `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${rango}?key=${key}`;
+      const response = await fetch(url);
+      return response.json();
+    }
+
+    
+    
+    function procesaDatosAJSON(infoJson) {
+      let entries = infoJson.values;
+      let numFilas = entries.length;
+      //alert(entries.cedula);
+    
+      //Procesamos los datos
+      let campos = [];
+      let datos = [];
+      let cursos = [];
+    
+      for(var f = 0; f < numFilas; f++) {
+
+        
+
+        let fila = entries[f];
+        cursos[f]= fila;
+        //alert(cursos);
+          //Recorremos cada fila y por cada columna creamos un nuevo objeto
+          let obj = {};
+    
+          for(var c = 0; c < fila.length; c++) {
+            //alert(fila[c]);
+              celda = fila[c];
+              if (f == 0){
+                  // Nombres de los campos ubicados en el thead
+                  campos.push(celda);
+                  //alert(campos);
+              } else {
+                  //En las demás filas asignamos la propiedad que corresponda según la posición
+                  obj[campos[c]] = celda;
+              }
+          }
+      
+          //Añadimos el nuevo objeto a la colección de datos (si no es la primera fila)
+          if (f > 0) datos.push(obj);
+          //alert(obj.cedula);
+          //alert(datos);
+
+
+          
+
+      }
+
+      //variables para el html
+      var extension = "",
+
+        ofertas = "";
+        modalidades = "";
+        cursos = "";
+        facultades = "";
+
+
+      //ciclo para rellenar las cards
+      for (var i = 0; i < datos.length; i++) {
+        var id_cur = datos[i].id_cur,
+            curso = datos[i].curso;
+            duracion = datos[i].duracion;
+            portada = datos[i].portada;
+            inicio = datos[i].inicio
+
+            //para los filtros
+            formacion = datos[i].oferta;
+            facultad = datos[i].facultad;
+            modalidad = datos[i].modalidad;
+            //alert(portada);     
+            tiempo = datos[i].tiempo;
+            precio = datos[i].precio;
+            url = datos[i].url;
+            color = datos[i].color;
+            oferta = datos[i].oferta;
+
+
+
+
+        extension += "<div><a href='"+ url +"'><div class='card exte' data-oferta='" + oferta + "' data-modalidad='" + modalidad + "' data-curso='" + curso + "' data-facultad='" + facultad + "'><div class='card-header'><img src='" + portada + "' alt='"+curso+"'/><div class='card-body'><span class='tag tag-teal' style='background-color:"+ color +"'>"+ oferta +"</span><h4 style='color:#ff0000;'> " + curso + "</h4><p>Duración: " + duracion + "<br />Inicio: " + inicio + "<br />Modalidad: " + modalidad +"<br />Facultad: " + facultad +"<p></div></div><div class='card-footer'><a class='btn btn-block' style='background-color:#ff0000; margin-bottom:0; color:#ffffff' href='"+ url +"'>¡Conoce más!</a></div></div></a></div>";
+
+        //los que si sirven
+        //oferta
+        if (ofertas.indexOf("<option value='" + oferta + "'>" + oferta + "</option>") == -1) {
+            ofertas += "<option value='" + oferta + "'>" + oferta + "</option>";
+        }
+        //modalidad
+        if (modalidades.indexOf("<option value='" + modalidad + "'>" + modalidad + "</option>") == -1) {
+            modalidades += "<option value='" + modalidad + "'>" + modalidad + "</option>";
+        }
+        //curso
+        if (cursos.indexOf("<option value='" + curso + "'>" + curso + "</option>") == -1) {
+            cursos += "<option value='" + curso + "'>" + curso + "</option>";
+        }
+        //facultad
+        if (facultades.indexOf("<option value='" + facultad + "'>" + facultad + "</option>") == -1) {
+            facultades += "<option value='" + facultad + "'>" + facultad + "</option>";
+        }
+        
+      }
+
+
+
+      $("#extension").html(extension);
+      $(".filter-oferta").append(ofertas);
+      $(".filter-modalidad").append(modalidades);
+      $(".filter-curso").append(cursos);
+      $(".filter-facultad").append(facultades);
+    
+      
+    
+    
+
+     
+    
+    }
+    
+
+    var filtersObject = {};
+    //on filter change
+
+    $(".filter").on("change",function() {
+        var filterName = $(this).data("filter"),
+            filterVal = $(this).val();
+        
+        if (filterVal == "") {
+            delete filtersObject[filterName];
+        } else {
+            filtersObject[filterName] = filterVal;
+        }
+        
+        var filters = "";
+        
+        
+
+        for (var key in filtersObject) {
+              if (filtersObject.hasOwnProperty(key)) {
+                
+                filters += "[data-"+key+"='"+filtersObject[key]+"']";
+             }
+        }
+        
+        if (filters == "") {
+            $(".exte").show();
+        } else {
+            $(".exte").hide();
+            $(".exte").hide().filter(filters).show();
+        }
+    });
+    
+    //on search form submit
+    $("#search-form").submit(function(e) {
+        e.preventDefault();
+        var query = $("#search-form input").val().toLowerCase();
+        //alert(query)
+        $(".exte").hide();
+        $(".exte").each(function() {
+            var oferta = $(this).data("oferta").toLowerCase(),
+                modalidad = $(this).data("modalidad").toLowerCase(),
+                curso = $(this).data("curso").toLowerCase(),
+                facultad = $(this).data("facultad").toLowerCase();
+                //alert(curso)
+            if (oferta.indexOf(query) > -1 || modalidad.indexOf(query) > -1 || curso.indexOf(query) > -1 || facultad.indexOf(query) > -1) {
+                $(this).show();
+            }
+        });
+    });
+    
+    
+</script>

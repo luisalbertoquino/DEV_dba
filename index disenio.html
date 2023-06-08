@@ -1,0 +1,634 @@
+
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous"/>
+  <script defer src="https://use.fontawesome.com/releases/v5.15.4/js/all.js" integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!--we need the topojson library as well-->
+<script src="https://unpkg.com/topojson@3.0.2/dist/topojson.min.js"></script>
+
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="ue.js"></script>
+<script src="colombia_json.js"></script>
+  
+<style>
+
+body {
+      background-color: #222;
+      color: #fff;
+    }
+
+    .navbar {
+      background-color: #fff;
+      color: #000;
+    }
+
+    .navbar::before {
+      content: "";
+      background-color: #fff;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    .navbar-brand {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .navbar-brand img {
+      height: 100px;
+      width: auto;
+      /*margin-right: 10px;*/
+    }
+
+    .navbar-separator {
+      border-left: 1px solid #000;
+      height: 100px;
+      margin: 0 10px;
+    }
+
+    .navbar-brand span {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    #contenido {
+      margin-top: 40px;
+    }
+
+    .card {
+      background-color: #333;
+      border-color: #444;
+      color: #fff;
+    }
+
+    .card-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      color: #888;
+    }
+
+    .card-icon i {
+      color: #888;
+    }
+
+    .py-2 {
+      padding-top: 40px;
+      padding-bottom: 40px;
+    }
+canvas {
+      max-height: 200px;
+    }
+
+    #map {
+      height: 300px;
+      background-color: #444;
+    }
+
+    .card-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+    }
+
+    .card-icon i {
+      color: #007bff;
+    }
+
+  .chart-container {
+        height: 300px;
+      }
+      
+      .info {
+      padding: 6px 8px;
+      font: 14px/16px Arial, Helvetica, sans-serif;
+      background: white;
+      background: rgba(255,255,255,0.8);
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      border-radius: 5px;
+  }
+  .info h4 {
+      margin: 0 0 5px;
+      color: #777;
+  }
+  
+  :root {
+      --map-tiles-filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+  }
+  
+  @media (prefers-color-scheme: dark) {
+      .map-tiles {
+          filter:var(--map-tiles-filter, none);
+    }
+  }
+  
+  
+  
+  /*Legend specific*/
+  .legend {
+    padding: 6px 8px;
+    font: 14px Arial, Helvetica, sans-serif;
+    background: white;
+    background: rgba(255, 255, 255, 0.8);
+    /*box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);*/
+    /*border-radius: 5px;*/
+    line-height: 24px;
+    color: #555;
+  }
+  .legend h4 {
+    text-align: center;
+    font-size: 16px;
+    margin: 2px 12px 8px;
+    color: #777;
+  }
+  
+  .legend span {
+    position: relative;
+    bottom: 3px;
+  }
+  
+  .legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin: 0 8px 0 0;
+    opacity: 0.7;
+  }
+  
+  .legend i.icon {
+    background-size: 18px;
+    background-color: rgba(255, 255, 255, 1);
+  }
+
+
+  .ml-auto {
+      margin-left: auto !important;
+    }
+
+    .secondary-navbar {
+      background-color: #707070;
+      color: #fff;
+      text-align: center;
+    }
+
+    .secondary-navbar ul {
+      padding: 0;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .secondary-navbar li {
+      list-style: none;
+      margin: 0 10px;
+    }
+
+    .secondary-navbar a {
+      color: #fff;
+      text-decoration: none;
+    }
+  
+  
+  
+  
+  
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-md">
+    <div class="container">
+      <a class="navbar-brand ml-auto" href="#">
+        <img src="logo.png" alt="Logo">
+        <div class="navbar-separator"></div>
+        <span>Development Base Analysis</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="#">Enlace 1</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Enlace 2</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Enlace 3</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <nav class="secondary-navbar">
+    <div class="container">
+      <ul>
+        <li><a href="#">Nosotros</a></li>
+        <li><a href="#">Bases de datos</a></li>
+        <li><a href="#">Contacto</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="container " id="contenido">
+    <div class="row py-2">
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="card-icon">
+              <i class="fas fa-notes-medical"></i>
+            </div>
+            <h5 class="card-title">Resumen 1</h5>
+            <p class="card-text">Variable de prueba</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="card-icon">
+              <i class="fas fa-heartbeat"></i>
+            </div>
+            <h5 class="card-title">Resumen 2</h5>
+            <p class="card-text">Variable de prueba</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="card-icon">
+              <i class="fas fa-pills"></i>
+            </div>
+            <h5 class="card-title">Resumen 3</h5>
+            <p class="card-text">Variable de prueba</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="card-icon">
+              <i class="fas fa-pills"></i>
+            </div>
+            <h5 class="card-title">Resumen 3</h5>
+            <p class="card-text">Variable de prueba</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Mapa</h5>
+            <div id="map" style="height: 800px;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 py-2">
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">Gráfico 1</h5>
+                <canvas id="chart1"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-12 py-2">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">Gráfico 2</h5>
+                <canvas id="chart2"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-12 py-2">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">Gráfico 3</h5>
+                <canvas id="chart3"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Crear mapa con Leaflet
+    //1. CARGAMOS LOS VALORES DE UN FORMULARIO DE GOOGLE SHEETS
+getCSVFByDocId('1vrC1_PxrbUVzwEBy9T4Zo3fN-Hb2Ad6371Kq9Nced4o', 'A:Z', 'AIzaSyBnk4I7IbLq1GV4wVuIypF6lAXijdVknSw').then(procesaDatosAJSON);
+async function getCSVFByDocId(id, rango, key) {
+    let url = `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${rango}?key=${key}`;
+    const response = await fetch(url);
+    return response.json();
+}
+
+
+
+
+
+
+//2. VARIABLE DEFINIDA PARA EL MAPA DE COLOMBIA
+var geojson;
+
+
+
+
+
+// 3.MAPA COLOMBIA UN SIN EFECTOS
+var map3 = L.map('map').setView([4.570868, -74.297333], zoom = 6);
+
+var tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    className: 'map-tiles'
+}).addTo(map3);
+
+
+
+
+//COLOR DE TEMAS
+function getColor2(e) {
+    return e > 1000 ? '#3c3c3c' :
+           e > 500  ? '#515151' :
+           e > 200  ? '#666666' :
+           e > 100  ? '#8c8c8c' :
+           e > 50   ? '#b5b5b5' :
+           e > 20   ? '#a7a7a7' :
+           e > 10   ? '#bdbdbd' :
+                      '#c9c9c9';
+
+}
+
+function style2(feature) {
+    return {
+        fillColor: getColor2(feature.properties.STP9_2_1_M),
+        weight: 2,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.7
+    };
+}
+
+/*L.geoJson(colombia).addTo(map3);*/
+L.geoJson(colombia, {style: style2}).addTo(map3);
+// L.geoJSON(JSON.parse(colombia)).addTo(this.map3);
+var marker = L.marker([2.958242, -75.297896]).addTo(map3);
+var circle = L.circle([51.508, -0.11], {
+    color: 'red',
+    fillColor: '#f03',
+    fillOpacity: 0.5,
+    radius: 500
+}).addTo(map3);
+var polygon = L.polygon([
+    [51.509, -0.08],
+    [51.503, -0.06],
+    [51.51, -0.047]
+]).addTo(map3);
+
+
+
+circle.bindPopup("I am a circle.");
+polygon.bindPopup("I am a polygon.");
+
+
+
+
+//4. CARGAMOS LAS VARIABLES QUE NECESITAMOS EN ARREGLOS
+function procesaDatosAJSON(infoJson) {
+      let entries = infoJson.values;
+      let numFilas = entries.length;
+      //alert(entries.cedula);
+    
+      //Procesamos los datos
+      let campos = [];
+      let datos = [];
+      let datosDBA = [];
+    
+      for(var f = 0; f < numFilas; f++) {
+        let fila = entries[f];
+        datosDBA[f]= fila;
+        //alert(datosDBA);
+          //Recorremos cada fila y por cada columna creamos un nuevo objeto
+          let obj = {};
+    
+          for(var c = 0; c < fila.length; c++) {
+            //alert(fila[c]);
+              celda = fila[c];
+              if (f == 0){
+                  // Nombres de los campos ubicados en el thead
+                  campos.push(celda);
+                  //alert(campos);
+              } else {
+                  //En las demás filas asignamos la propiedad que corresponda según la posición
+                  obj[campos[c]] = celda;
+              }
+          }
+      
+          //Añadimos el nuevo objeto a la colección de datos (si no es la primera fila)
+          if (f > 0) datos.push(obj);
+          //alert(obj.cedula);
+          //alert(datos);
+
+      }
+      //variables para el html
+      var acum1 = 0;
+            var acum2 = 0;
+            var acum3 = 0;
+            var acum4 = 0;
+            var acum5 = 0;
+            var acum6 = 0;
+            var acum7 = 0;
+
+      //ciclo para rellenar las cards
+      for (var i = 0; i < datos.length; i++) {
+        var departamento = datos[i].departamento,
+            ciudad = datos[i].ciudad;
+            //hallazgo = datos[i].hallazgo;
+            tipoTumor = datos[i].tipo_tumor;
+            x = datos[i].x;
+            y = datos[i].y;
+            color = datos[i].color;
+
+            
+
+            let tumorDetectado;
+            switch (tipoTumor) {
+              case "1":
+                tumorDetectado="astrocíticos";
+                acum1=acum1+1;
+                break;
+              case "2":
+                tumorDetectado="astrocitomas";
+                acum2=acum2+1;
+                break;
+              case "3":
+                tumorDetectado="anaplásicos";
+                acum3=acum3+1;
+                break;
+              case "4":
+                tumorDetectado="glioblastomas";
+                acum4=acum4+1;
+                break;
+              case "5":
+                tumorDetectado="oligodendrogliales";
+                acum5=acum5+1;
+                break;
+              case "6":
+                tumorDetectado="meningioma";
+                acum6=acum6+1;
+                break;
+              case "7":
+                tumorDetectado="glándula pineal y la glándula pituitaria";
+                acum7=acum7+1;
+                break;
+              case "8":
+                tumorDetectado="Meduloblastoma";
+                acum8=acum8+1;
+                break;  
+              default:
+                console.log(`Sorry, we are not find ${tipoTumor}.`);
+            }
+
+            
+
+            /*var circle = L.circle([x, y], {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.5,
+            radius: 500
+        }).addTo(map3);*/
+        var myIcon = L.icon({
+            iconUrl: 'cerebro.png',
+            iconSize: [38, 38],
+            iconAnchor: [22, 22],
+            /*popupAnchor: [-3, -76],
+            shadowUrl: 'cerebro.png',
+            shadowSize: [68, 95],
+            shadowAnchor: [22, 94]*/
+        });
+        
+        
+        
+        var marker = L.marker([x, y],{
+            riseOnHover: true,
+            icon: myIcon
+        }).addTo(map3);
+        //marker.bindPopup("<b>Departamento: "+ departamento +" </b><br><p>"+ ciudad +"</p><p>Hallazgo: "+ tumorDetectado  +"</p>").openPopup();
+        
+        marker.bindPopup("<b>Departamento: "+ departamento +" </b><br><p>"+ ciudad +"</p><p>Hallazgo: "+ tumorDetectado  +"</p>");
+        marker.on('mouseover', function (e) {
+            this.openPopup();
+        });
+        marker.on('mouseout', function (e) {
+            this.closePopup();
+        });
+      }
+
+      //LEYENDA OPCIONAL
+/*Legend specific*/
+var legend = L.control({ position: "bottomleft" });
+
+legend.onAdd = function(map3) {
+  var div = L.DomUtil.create("div", "legend");
+  div.innerHTML += "<h4>Total de tipos detectados</h4>";
+  div.innerHTML += '<i style="background: #477AC2"></i><span>astrocíticos:  '+acum1+'</span><br>';
+  div.innerHTML += '<i style="background: #448D40"></i><span>astrocitomas:  '+acum2+'</span><br>';
+  div.innerHTML += '<i style="background: #E6E696"></i><span>anaplásicos:  '+acum3+'</span><br>';
+  div.innerHTML += '<i style="background: #E8E6E0"></i><span>glioblastomas:  '+acum4+'</span><br>';
+  div.innerHTML += '<i style="background: #FFFFFF"></i><span>oligodendrogliales:  '+acum5+'</span><br>';
+  return div;
+};
+legend.addTo(map3);
+      //alert(x);
+      
+    }
+
+    // Crear gráficos con Chart.js
+    var ctx1 = document.getElementById('chart1').getContext('2d');
+    var chart1 = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: ['Label 1', 'Label 2', 'Label 3'],
+        datasets: [{
+          label: 'Datos 1',
+          data: [12, 19, 3],
+          backgroundColor: 'rgba(255, 99, 132, 0.5)',
+          borderColor: 'rgba(255, 99, 132, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+
+    var ctx2 = document.getElementById('chart2').getContext('2d');
+    var chart2 = new Chart(ctx2, {
+      type: 'line',
+      data: {
+        labels: ['Label 1', 'Label 2', 'Label 3'],
+        datasets: [{
+          label: 'Datos 2',
+          data: [5, 10, 15],
+          backgroundColor: 'rgba(54, 162, 235, 0.5)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+
+    var ctx3 = document.getElementById('chart3').getContext('2d');
+    var chart3 = new Chart(ctx3, {
+      type: 'pie',
+      data: {
+        labels: ['Label 1', 'Label 2', 'Label 3'],
+        datasets: [{
+          label: 'Datos 3',
+          data: [30, 20, 50],
+          backgroundColor: ['rgba(255, 205, 86, 0.5)', 'rgba(75, 192, 192, 0.5)', 'rgba(153, 102, 255, 0.5)'],
+          borderColor: ['rgba(255, 205, 86, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+  </script>
+</body>
+
+</html>

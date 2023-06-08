@@ -1,0 +1,340 @@
+<style>
+    html, body, #map, #map2, #map3{
+        height: 100%;
+        padding: 0;
+        margin: 0;
+}
+
+
+</style>
+<style>
+    .info {
+    padding: 6px 8px;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: white;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+}
+.info h4 {
+    margin: 0 0 5px;
+    color: #777;
+}
+
+:root {
+    --map-tiles-filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+    .map-tiles {
+        filter:var(--map-tiles-filter, none);
+	}
+}
+
+
+
+/*Legend specific*/
+.legend {
+  padding: 6px 8px;
+  font: 14px Arial, Helvetica, sans-serif;
+  background: white;
+  background: rgba(255, 255, 255, 0.8);
+  /*box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);*/
+  /*border-radius: 5px;*/
+  line-height: 24px;
+  color: #555;
+}
+.legend h4 {
+  text-align: center;
+  font-size: 16px;
+  margin: 2px 12px 8px;
+  color: #777;
+}
+
+.legend span {
+  position: relative;
+  bottom: 3px;
+}
+
+.legend i {
+  width: 18px;
+  height: 18px;
+  float: left;
+  margin: 0 8px 0 0;
+  opacity: 0.7;
+}
+
+.legend i.icon {
+  background-size: 18px;
+  background-color: rgba(255, 255, 255, 1);
+}
+
+
+
+
+
+</style>
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+
+<!--we need the topojson library as well-->
+<script src="https://unpkg.com/topojson@3.0.2/dist/topojson.min.js"></script>
+
+
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="ue.js"></script>
+<script src="colombia_json.js"></script>
+
+
+<div id="map3">
+
+</div>
+
+
+
+
+
+
+<script>
+//1. CARGAMOS LOS VALORES DE UN FORMULARIO DE GOOGLE SHEETS
+getCSVFByDocId('1vrC1_PxrbUVzwEBy9T4Zo3fN-Hb2Ad6371Kq9Nced4o', 'A:Z', 'AIzaSyBnk4I7IbLq1GV4wVuIypF6lAXijdVknSw').then(procesaDatosAJSON);
+async function getCSVFByDocId(id, rango, key) {
+    let url = `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${rango}?key=${key}`;
+    const response = await fetch(url);
+    return response.json();
+}
+
+
+
+
+
+
+//2. VARIABLE DEFINIDA PARA EL MAPA DE COLOMBIA
+var geojson;
+
+
+
+
+
+// 3.MAPA COLOMBIA UN SIN EFECTOS
+var map3 = L.map('map3').setView([4.570868, -74.297333], zoom = 6);
+
+var tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    className: 'map-tiles'
+}).addTo(map3);
+
+
+
+
+//COLOR DE TEMAS
+function getColor2(e) {
+    return e > 1000 ? '#3c3c3c' :
+           e > 500  ? '#515151' :
+           e > 200  ? '#666666' :
+           e > 100  ? '#8c8c8c' :
+           e > 50   ? '#b5b5b5' :
+           e > 20   ? '#a7a7a7' :
+           e > 10   ? '#bdbdbd' :
+                      '#c9c9c9';
+
+}
+
+function style2(feature) {
+    return {
+        fillColor: getColor2(feature.properties.STP9_2_1_M),
+        weight: 2,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.7
+    };
+}
+
+/*L.geoJson(colombia).addTo(map3);*/
+L.geoJson(colombia, {style: style2}).addTo(map3);
+// L.geoJSON(JSON.parse(colombia)).addTo(this.map3);
+var marker = L.marker([2.958242, -75.297896]).addTo(map3);
+var circle = L.circle([51.508, -0.11], {
+    color: 'red',
+    fillColor: '#f03',
+    fillOpacity: 0.5,
+    radius: 500
+}).addTo(map3);
+var polygon = L.polygon([
+    [51.509, -0.08],
+    [51.503, -0.06],
+    [51.51, -0.047]
+]).addTo(map3);
+
+
+
+circle.bindPopup("I am a circle.");
+polygon.bindPopup("I am a polygon.");
+
+
+
+
+//4. CARGAMOS LAS VARIABLES QUE NECESITAMOS EN ARREGLOS
+function procesaDatosAJSON(infoJson) {
+      let entries = infoJson.values;
+      let numFilas = entries.length;
+      //alert(entries.cedula);
+    
+      //Procesamos los datos
+      let campos = [];
+      let datos = [];
+      let datosDBA = [];
+    
+      for(var f = 0; f < numFilas; f++) {
+        let fila = entries[f];
+        datosDBA[f]= fila;
+        //alert(datosDBA);
+          //Recorremos cada fila y por cada columna creamos un nuevo objeto
+          let obj = {};
+    
+          for(var c = 0; c < fila.length; c++) {
+            //alert(fila[c]);
+              celda = fila[c];
+              if (f == 0){
+                  // Nombres de los campos ubicados en el thead
+                  campos.push(celda);
+                  //alert(campos);
+              } else {
+                  //En las demás filas asignamos la propiedad que corresponda según la posición
+                  obj[campos[c]] = celda;
+              }
+          }
+      
+          //Añadimos el nuevo objeto a la colección de datos (si no es la primera fila)
+          if (f > 0) datos.push(obj);
+          //alert(obj.cedula);
+          //alert(datos);
+
+      }
+      //variables para el html
+      var acum1 = 0;
+            var acum2 = 0;
+            var acum3 = 0;
+            var acum4 = 0;
+            var acum5 = 0;
+            var acum6 = 0;
+            var acum7 = 0;
+
+      //ciclo para rellenar las cards
+      for (var i = 0; i < datos.length; i++) {
+        var departamento = datos[i].departamento,
+            ciudad = datos[i].ciudad;
+            //hallazgo = datos[i].hallazgo;
+            tipoTumor = datos[i].tipo_tumor;
+            x = datos[i].x;
+            y = datos[i].y;
+            color = datos[i].color;
+
+            
+
+            let tumorDetectado;
+            switch (tipoTumor) {
+              case "1":
+                tumorDetectado="astrocíticos";
+                acum1=acum1+1;
+                break;
+              case "2":
+                tumorDetectado="astrocitomas";
+                acum2=acum2+1;
+                break;
+              case "3":
+                tumorDetectado="anaplásicos";
+                acum3=acum3+1;
+                break;
+              case "4":
+                tumorDetectado="glioblastomas";
+                acum4=acum4+1;
+                break;
+              case "5":
+                tumorDetectado="oligodendrogliales";
+                acum5=acum5+1;
+                break;
+              case "6":
+                tumorDetectado="meningioma";
+                acum6=acum6+1;
+                break;
+              case "7":
+                tumorDetectado="glándula pineal y la glándula pituitaria";
+                acum7=acum7+1;
+                break;
+              case "8":
+                tumorDetectado="Meduloblastoma";
+                acum8=acum8+1;
+                break;  
+              default:
+                console.log(`Sorry, we are not find ${tipoTumor}.`);
+            }
+
+            
+
+            /*var circle = L.circle([x, y], {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.5,
+            radius: 500
+        }).addTo(map3);*/
+        var myIcon = L.icon({
+            iconUrl: 'cerebro.png',
+            iconSize: [38, 38],
+            iconAnchor: [22, 22],
+            /*popupAnchor: [-3, -76],
+            shadowUrl: 'cerebro.png',
+            shadowSize: [68, 95],
+            shadowAnchor: [22, 94]*/
+        });
+        
+        
+        
+        var marker = L.marker([x, y],{
+            riseOnHover: true,
+            icon: myIcon
+        }).addTo(map3);
+        //marker.bindPopup("<b>Departamento: "+ departamento +" </b><br><p>"+ ciudad +"</p><p>Hallazgo: "+ tumorDetectado  +"</p>").openPopup();
+        
+        marker.bindPopup("<b>Departamento: "+ departamento +" </b><br><p>"+ ciudad +"</p><p>Hallazgo: "+ tumorDetectado  +"</p>");
+        marker.on('mouseover', function (e) {
+            this.openPopup();
+        });
+        marker.on('mouseout', function (e) {
+            this.closePopup();
+        });
+      }
+
+      //LEYENDA OPCIONAL
+/*Legend specific*/
+var legend = L.control({ position: "bottomleft" });
+
+legend.onAdd = function(map3) {
+  var div = L.DomUtil.create("div", "legend");
+  div.innerHTML += "<h4>Total de tipos detectados</h4>";
+  div.innerHTML += '<i style="background: #477AC2"></i><span>astrocíticos:  '+acum1+'</span><br>';
+  div.innerHTML += '<i style="background: #448D40"></i><span>astrocitomas:  '+acum2+'</span><br>';
+  div.innerHTML += '<i style="background: #E6E696"></i><span>anaplásicos:  '+acum3+'</span><br>';
+  div.innerHTML += '<i style="background: #E8E6E0"></i><span>glioblastomas:  '+acum4+'</span><br>';
+  div.innerHTML += '<i style="background: #FFFFFF"></i><span>oligodendrogliales:  '+acum5+'</span><br>';
+  return div;
+};
+legend.addTo(map3);
+      //alert(x);
+
+
+
+
+      
+    }
+
+
+</script>
+
+
+
